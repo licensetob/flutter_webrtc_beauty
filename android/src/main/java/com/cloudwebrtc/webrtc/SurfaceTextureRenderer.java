@@ -167,7 +167,7 @@ public class SurfaceTextureRenderer extends EglRenderer {
     byte[] jpegData = outputStream.toByteArray();
     Bitmap bitmap = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
 
-    Bitmap beautyBitmap = Concertion.applyBeautyFilter(bitmap);;
+    Bitmap beautyBitmap = Concertion.gpuBeauty(bitmap);;
     JavaI420Buffer javaI420Buffer = JavaI420Buffer.allocate(width,height);
     // 将美颜后的Bitmap对象转换成视频帧数据
     Concertion.bitmapToI420(beautyBitmap,javaI420Buffer);

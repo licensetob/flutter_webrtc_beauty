@@ -190,7 +190,7 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
     mFactory = factoryBuilder
             .setAudioDeviceModule(audioDeviceModule)
             .createPeerConnectionFactory();
-
+    Concertion.context = this.context;
     String cascadeFilePath = context.getFilesDir().getPath().replaceFirst("files","cache")+"/assets/lbpcascade_frontalface.xml" ;
     File cascadeFile = new File(cascadeFilePath);
 

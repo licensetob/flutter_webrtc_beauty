@@ -1,6 +1,7 @@
 package com.cloudwebrtc.webrtc.utils;
 
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -10,6 +11,7 @@ import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
+import android.os.FileUtils;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -26,8 +28,19 @@ import org.webrtc.YuvHelper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import jp.co.cyberagent.android.gpuimage.GPUImage;
+import jp.co.cyberagent.android.gpuimage.GPUImageBilateralFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageBrightnessFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageContrastFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageFilter;
+import jp.co.cyberagent.android.gpuimage.GPUImageFilterGroup;
+import jp.co.cyberagent.android.gpuimage.GPUImageGammaFilter;
 
 
 public  class Concertion{
@@ -42,14 +55,32 @@ public  class Concertion{
      public static final String CASCADE_FILE_NAME = "lbpcascade_frontalface.xml"; // 级联分类器文件名
      private static final float BILATERAL_TRAVERSAL = 1.5f; // 双边滤波参数
      private static final float WHITENESS = 1.2f; // 美白强度
-
+     public static Context context;
      public static CascadeClassifier mFaceDetector; // 级联分类器对象
 
      public static void BeautyFilter(File cascadeFile) {
           mFaceDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
      }
+
+    public static Bitmap gpuBeauty(Bitmap inputBitmap){
+         GPUImageFilterGroup magicFilterGroup;
+         GPUImageFilterGroup noMagicFilterGroup;
+
+        GPUImage gpuImage = new GPUImage(context);
+        gpuImage.setImage(inputBitmap);
+        magicFilterGroup = new GPUImageFilterGroup();
+        magicFilterGroup.addFilter(new GPUImageBeautyFilter());
+
+        noMagicFilterGroup = new GPUImageFilterGroup();
+        noMagicFilterGroup.addFilter(new GPUImageFilter());
+
+        gpuImage.setFilter(magicFilterGroup);
+        Bitmap outputBitmap = gpuImage.getBitmapWithFilterApplied();
+        return outputBitmap;
+    }
+
     public static Bitmap applyBeautyFilter(Bitmap inputBitmap) {
-        float bilityTraversal = 5.0f; // 将 Float 类型改为 float 类型，并修改变量名为 bilityTraversal
+        float bilityTraversal = 1.0f; // 将 Float 类型改为 float 类型，并修改变量名为 bilityTraversal
 
         Bitmap processedBitmap = inputBitmap.copy(inputBitmap.getConfig(), true); // 使用输入的 Bitmap 对象创建一个新的 Bitmap 对象
 
@@ -63,6 +94,8 @@ public  class Concertion{
 
             Mat image = new Mat();
             Utils.bitmapToMat(processedBitmap, image);
+            Core.add(image, new Scalar(10, 10, 10), image);
+                Core.convertScaleAbs(image, image, 1.0f, 1.0f); // 调整对比度和亮度
 
             // 进行人脸检测，获取人脸位置信息
             org.opencv.core.Rect faceRect = detectFace(image);
@@ -73,7 +106,7 @@ public  class Concertion{
                 Mat faceMat = image.submat(faceRect );
 
                 // 亮度局部会有块 放在image处理
-//                Core.add(faceMat, new Scalar(10, 10, 10), faceMat);
+                Core.add(faceMat, new Scalar(10, 10, 10), faceMat);
 //                Core.convertScaleAbs(faceMat, faceMat, 0.8f, 0.8f); // 调整对比度和亮度
 
                 Imgproc.cvtColor(faceMat, faceMat, Imgproc.COLOR_BGRA2BGR);
@@ -104,10 +137,28 @@ public  class Concertion{
 //            Imgproc.filter2D(image, sharpenedImg, -1, kernel);
 
             Utils.matToBitmap(image, processedBitmap);
+          //  saveBitmap("2.jpg",processedBitmap);
         }
 
         return processedBitmap;
      }
+
+    static void saveBitmap(String name, Bitmap bm) {
+
+        File saveFile = new File("/data/user/0/com.example.qc_flow/cache/", "1.jpeg");
+
+        try {
+            FileOutputStream saveImgOut = new FileOutputStream(saveFile);
+            // compress - 压缩的意思
+            bm.compress(Bitmap.CompressFormat.JPEG, 80, saveImgOut);
+            //存储完成后需要清除相关的进程
+            saveImgOut.flush();
+            saveImgOut.close();
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
     private static  org.opencv.core.Rect detectFace(Mat image) {
 
         Mat grayImage = new Mat();
